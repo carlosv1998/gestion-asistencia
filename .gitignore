@@ -1,0 +1,27 @@
+# Ignorar carpetas de compilación y resultados
+/target/
+*.class
+
+# Ignorar archivos de configuración de IDEs
+*.iml
+*.idea/
+*.class
+*.log
+
+# Ignorar archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Ignorar archivos de configuración de Maven
+*.jar
+*.war
+*.ear
+
+# Ignorar archivos de dependencias locales
+/.mvn/
+/.m2/
+
+# Ignorar otros archivos temporales
+*.tmp
+*.bak
+*.swp

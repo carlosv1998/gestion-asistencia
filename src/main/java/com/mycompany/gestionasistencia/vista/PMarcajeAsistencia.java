@@ -23,6 +23,7 @@ import static java.time.DayOfWeek.SUNDAY;
 import static java.time.DayOfWeek.THURSDAY;
 import static java.time.DayOfWeek.TUESDAY;
 import static java.time.DayOfWeek.WEDNESDAY;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -30,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -214,12 +217,7 @@ public class PMarcajeAsistencia extends javax.swing.JPanel {
                     System.out.println("El usuario llegó antes de la hora de entrada.");
                 }
             }else {
-                if (registroAsistencia.getHoraSalida() == null){
-                    btnRegistrarSalida.setBackground(new Color(102,0,0));
-                }else {
-                    btnRegistrarSalida.setBackground(new Color(102,102,102));
-                }
-                
+                btnRegistrarSalida.setBackground(new Color(102,0,0));
             }
         }
         btnRegistrarIngreso.setLayout(null);
@@ -282,6 +280,7 @@ public class PMarcajeAsistencia extends javax.swing.JPanel {
                     nuevoRegistroAsistencia.setFecha(fechaActual);
                     
                     try {
+                        verificarHorasTrabajadasEnLaSemana();
                         controlador.crearRegistroAsistencia(nuevoRegistroAsistencia);
                         JOptionPane.showMessageDialog(null, "Ingreso registrado", "Información", JOptionPane.INFORMATION_MESSAGE);
                         iniciarMarcaje();
@@ -322,40 +321,45 @@ public class PMarcajeAsistencia extends javax.swing.JPanel {
                 }
                 
                 if (registroExistente.getHoraSalida() != null){
-                    JOptionPane.showMessageDialog(null, "Salida ya registrada", "Información", JOptionPane.INFORMATION_MESSAGE);
-                    return;
+                    registroExistente.setHoraSalida(Time.valueOf(horaActual));
+                    try {
+                        controlador.updateRegistroAsistencia(registroExistente);
+                        JOptionPane.showMessageDialog(null, "Hora de salida actualizada", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                        iniciarMarcaje();
+                        return;
+                    } catch (Exception ex) {
+                        Logger.getLogger(PMarcajeAsistencia.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 }
+                
                 
                 if (!fechaActual.toString().equals(registroExistente.getFecha().toString())){
                     JOptionPane.showMessageDialog(null, "Las fechas no coinciden", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 
-                if (registroExistente.getHoraSalida() == null){
-                    try {
-                       registroExistente.setHoraSalida(Time.valueOf(horaActual));
-                       controlador.updateRegistroAsistencia(registroExistente);
-                       JOptionPane.showMessageDialog(null, "Salida registrada", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                       btnRegistrarSalida.setBackground(new Color(102,102,102));
-                       JOptionPane.showMessageDialog(null, "Registro día " + fechaActual + " completado", "Información", JOptionPane.INFORMATION_MESSAGE);
-                       
-                       String correoDeAsistenciaHtml = ""
-                               + "<h1>Marcaje de asistencia</h1>"
-                               + "<span>Usuario: </span> <p>" + usuarioActual.getNombre() + "</p>"
-                               + "<span>Fecha: </span> <p>" + fechaActual + "</p>"
-                               + "<span>Hora de entrada registrada: </span> <p>" + registroExistente.getHoraEntrada() + "</p>"
-                               + "<span>Hora de salida registrada: </span> <p>" + registroExistente.getHoraSalida() + "</p>"
-                               + "";
-                       
-                       
-                       EnviarCorreo nuevoCorreo = new EnviarCorreo(usuarioActual.getCorreo(), "Marcaje", correoDeAsistenciaHtml);
-                       nuevoCorreo.enviarEmail();
-                       JOptionPane.showMessageDialog(null, "Se envió un correo a " + usuarioActual.getCorreo() + " con su asistencia", "Información", JOptionPane.INFORMATION_MESSAGE);
-                    }catch(Exception e){
-                        System.out.println(e);
-                        JOptionPane.showMessageDialog(null, "Ocurrió un error inesperado", "Error", JOptionPane.ERROR_MESSAGE);
-                    }
-                }
+                try {
+                    registroExistente.setHoraSalida(Time.valueOf(horaActual));
+                    controlador.updateRegistroAsistencia(registroExistente);
+                    JOptionPane.showMessageDialog(null, "Salida registrada", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "Registro día " + fechaActual + " completado", "Información", JOptionPane.INFORMATION_MESSAGE);
+
+                    String correoDeAsistenciaHtml = ""
+                            + "<h1>Marcaje de asistencia</h1>"
+                            + "<span>Usuario: </span> <p>" + usuarioActual.getNombre() + "</p>"
+                            + "<span>Fecha: </span> <p>" + fechaActual + "</p>"
+                            + "<span>Hora de entrada registrada: </span> <p>" + registroExistente.getHoraEntrada() + "</p>"
+                            + "<span>Hora de salida registrada: </span> <p>" + registroExistente.getHoraSalida() + "</p>"
+                            + "";
+                    
+                    iniciarMarcaje();
+                    //EnviarCorreo nuevoCorreo = new EnviarCorreo(usuarioActual.getCorreo(), "Marcaje", correoDeAsistenciaHtml);
+                    //nuevoCorreo.enviarEmail();
+                    //JOptionPane.showMessageDialog(null, "Se envió un correo a " + usuarioActual.getCorreo() + " con su asistencia", "Información", JOptionPane.INFORMATION_MESSAGE);
+                 }catch(Exception e){
+                     System.out.println(e);
+                     JOptionPane.showMessageDialog(null, "Ocurrió un error inesperado", "Error", JOptionPane.ERROR_MESSAGE);
+                 }
             }
             
             @Override
@@ -526,6 +530,45 @@ public class PMarcajeAsistencia extends javax.swing.JPanel {
             default -> {
                 return "";
             }
+        }
+    }
+    
+    public LocalDate obtenerUltimoLunes(LocalDate fecha) {
+        while (fecha.getDayOfWeek() != DayOfWeek.MONDAY) {
+            fecha = fecha.minusDays(1);
+        }
+        return fecha;
+    }
+    
+    public void verificarHorasTrabajadasEnLaSemana(){
+        LocalDate fechaActual = LocalDate.now();
+        LocalDate ultimoLunes = obtenerUltimoLunes(fechaActual);
+        List<RegistroAsistencias> listaRegistrosDesdeElLunes = controlador.obtenerRegistroAsistenciasPorIdYRango(
+                usuarioActual.getId(),
+                ultimoLunes,
+                fechaActual
+        );
+
+        long totalMinutosTrabajados = 0;
+
+        for (RegistroAsistencias reg : listaRegistrosDesdeElLunes) {
+            if (reg.getHoraSalida() == null) continue;
+            Time horaEntrada = reg.getHoraEntrada();
+            Time horaSalida = reg.getHoraSalida();
+            LocalTime entrada = horaEntrada.toLocalTime();
+            LocalTime salida = horaSalida.toLocalTime();
+            Duration duracion = Duration.between(entrada, salida);
+            long minutosTrabajados = duracion.toMinutes();
+            totalMinutosTrabajados += minutosTrabajados;
+        }
+
+        double totalHorasTrabajadas = totalMinutosTrabajados / 60.0;
+
+        if (totalHorasTrabajadas > 45) {
+            JOptionPane.showMessageDialog(null, "El usuario ha trabajado más de 45 horas esta semana", "Información", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            String mensaje = String.format("Total horas trabajadas en la semana: %.2f horas", totalHorasTrabajadas);
+            JOptionPane.showMessageDialog(null, mensaje, "Información", JOptionPane.INFORMATION_MESSAGE);
         }
     }
     

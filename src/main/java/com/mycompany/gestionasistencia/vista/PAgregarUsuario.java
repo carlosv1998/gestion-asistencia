@@ -507,10 +507,10 @@ public class PAgregarUsuario extends javax.swing.JPanel {
         lblHoraSalida.setHorizontalAlignment(SwingConstants.RIGHT);
         lblHoraSalida.setBounds(lblHoraEntrada.getX(), lblHoraEntrada.getHeight() + lblHoraEntrada.getY() + margin, anchoBotones, altoBotones);
         
-        SpinnerNumberModel modeloHorasEntrada = new SpinnerNumberModel(8, 8, 14, 1);
+        SpinnerNumberModel modeloHorasEntrada = new SpinnerNumberModel(0, 0, 23, 1);
         SpinnerNumberModel modeloMinutosEntrada = new SpinnerNumberModel(0, 0, 59, 1);
         
-        SpinnerNumberModel modeloHorasSalida = new SpinnerNumberModel(14, 14, 20, 1);
+        SpinnerNumberModel modeloHorasSalida = new SpinnerNumberModel(0, 0, 23, 1);
         SpinnerNumberModel modeloMinutosSalida = new SpinnerNumberModel(0, 0, 59, 1);
         
         pEntradaHoras = new JSpinner(modeloHorasEntrada);
@@ -850,7 +850,7 @@ public class PAgregarUsuario extends javax.swing.JPanel {
                 controlador.crearContrato(nuevoContrato);
                 
                 JOptionPane.showMessageDialog(null, "Usuario creado correctamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                resetInputs();
+                //resetInputs();
             }catch (HeadlessException e){
                 JOptionPane.showMessageDialog(null, "Error al crear usuario", "Error", JOptionPane.ERROR_MESSAGE);
             }
